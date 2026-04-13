@@ -1,3 +1,5 @@
 node_modules/
 .env
 *.log
+dxt/dist/
+dxt/.staging/

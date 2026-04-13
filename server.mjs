@@ -13,7 +13,7 @@
 import { createInterface } from 'node:readline';
 import { randomUUID } from 'node:crypto';
 import { MCP_URL } from './config.mjs';
-import { loadTokens, refresh } from './oauth.mjs';
+import { loadTokens, refresh, interactiveLogin } from './oauth.mjs';
 
 function log(...args) {
   console.error('[sf-bridge/server]', ...args);
@@ -21,8 +21,18 @@ function log(...args) {
 
 let tokens = loadTokens();
 if (!tokens) {
-  log('❌ No tokens. Run first: cd', process.cwd(), '&& npm run auth');
-  process.exit(2);
+  // First run (typical for a fresh DXT install): run the OAuth flow inline.
+  // This opens the user's browser; once they authorize, tokens are saved and
+  // we proceed normally. If the user doesn't complete within 5 min, we exit.
+  log('No tokens on disk — launching first-time OAuth flow.');
+  log('A browser window will open to authenticate against your Salesforce org.');
+  try {
+    tokens = await interactiveLogin();
+    log('OAuth complete. Tokens saved.');
+  } catch (e) {
+    log('❌ OAuth failed:', e.message);
+    process.exit(2);
+  }
 }
 
 // Salesforce's MCP endpoint uses the Streamable HTTP transport: a session is

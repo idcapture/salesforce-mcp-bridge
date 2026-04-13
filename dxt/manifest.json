@@ -1,0 +1,80 @@
+{
+  "manifest_version": "0.3",
+  "name": "salesforce-mcp-bridge",
+  "display_name": "Salesforce",
+  "version": "0.1.0",
+  "description": "Interrogez votre org Salesforce depuis Claude (SOQL, SOSL, schéma, records récents). Lecture seule.",
+  "long_description": "Bridge to Salesforce Hosted MCP servers (sobject-reads). Workaround for the broken OAuth discovery metadata on api.salesforce.com — OAuth happens directly against your org's My Domain, tokens are cached locally, MCP traffic is forwarded with a JWT Bearer token.",
+  "author": {
+    "name": "ID Capture",
+    "url": "https://github.com/idcapture/salesforce-mcp-bridge"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/idcapture/salesforce-mcp-bridge"
+  },
+  "homepage": "https://github.com/idcapture/salesforce-mcp-bridge",
+  "documentation": "https://github.com/idcapture/salesforce-mcp-bridge#readme",
+  "support": "https://github.com/idcapture/salesforce-mcp-bridge/issues",
+  "license": "MIT",
+  "keywords": ["salesforce", "mcp", "crm", "soql", "claude"],
+  "server": {
+    "type": "node",
+    "entry_point": "server/server.mjs",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/server.mjs"],
+      "env": {
+        "SF_ORG_DOMAIN": "${user_config.org_domain}",
+        "SF_CLIENT_ID": "${user_config.client_id}",
+        "SF_CLIENT_SECRET": "${user_config.client_secret}",
+        "SF_MCP_SERVER": "${user_config.server_name}"
+      }
+    }
+  },
+  "tools": [
+    { "name": "getUserInfo", "description": "Retourne l'identité et les préférences de l'utilisateur courant." },
+    { "name": "soqlQuery", "description": "Exécute une requête SOQL pour lire des records Salesforce." },
+    { "name": "find", "description": "Recherche texte cross-objets (SOSL)." },
+    { "name": "listRecentSobjectRecords", "description": "Les records récemment consultés pour un objet donné." },
+    { "name": "getRelatedRecords", "description": "Navigue les relations depuis un record parent (ex. Contacts d'un Account)." },
+    { "name": "getObjectSchema", "description": "Retourne le schéma d'un objet ou l'index des objets queryables." }
+  ],
+  "compatibility": {
+    "client": ">=0.10.0",
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=20.0.0"
+    }
+  },
+  "user_config": {
+    "org_domain": {
+      "type": "string",
+      "title": "Salesforce My Domain",
+      "description": "Votre domaine Salesforce, ex: votreorg.my.salesforce.com (sans https://)",
+      "required": true,
+      "default": "idcapture.my.salesforce.com"
+    },
+    "client_id": {
+      "type": "string",
+      "title": "OAuth Consumer Key",
+      "description": "Consumer Key de l'External Client App (fourni par l'IT)",
+      "required": true,
+      "default": "3MVG9gYjOgxHsENKfY5XT4SEP2v.3QiKRNR3wEzrL7eDHGHX2kmPSf3LtJP7myB_cp.TQwC2ISbxMGseNasoa"
+    },
+    "client_secret": {
+      "type": "string",
+      "title": "OAuth Consumer Secret",
+      "description": "Consumer Secret de l'External Client App (fourni par l'IT)",
+      "sensitive": true,
+      "required": true
+    },
+    "server_name": {
+      "type": "string",
+      "title": "MCP Server",
+      "description": "Nom du serveur MCP hébergé par Salesforce (par défaut: platform/sobject-reads, lecture seule)",
+      "required": false,
+      "default": "platform/sobject-reads"
+    }
+  }
+}
