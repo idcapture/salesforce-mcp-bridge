@@ -1,10 +1,11 @@
 {
-  "name": "@idcapture/salesforce-bridge",
+  "name": "salesforce-mcp-bridge",
   "version": "0.1.0",
-  "description": "Stdio MCP bridge to Salesforce Hosted MCP (sobject-reads) — bypasses broken OAuth discovery on api.salesforce.com by auth-ing directly against the org's my.salesforce.com",
+  "description": "Stdio MCP bridge to Salesforce Hosted MCP servers — workaround for broken OAuth discovery on api.salesforce.com",
+  "license": "MIT",
   "type": "module",
   "bin": {
-    "salesforce-bridge": "./server.mjs"
+    "salesforce-mcp-bridge": "./server.mjs"
   },
   "scripts": {
     "auth": "node auth.mjs",
@@ -12,5 +13,17 @@
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/idcapture/salesforce-mcp-bridge.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "salesforce",
+    "claude",
+    "oauth",
+    "bridge"
+  ]
 }

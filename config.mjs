@@ -1,45 +1,64 @@
-// Configuration — edit the values here, or override via env vars.
-// Consumer Key is not secret (it's a public identifier). Consumer Secret IS
-// loaded from env (SF_CLIENT_SECRET) or from ~/.idcapture-salesforce-bridge/secret.
-// Do NOT commit the secret to this file.
+// Configuration — all values come from env vars or a local config file.
+// See README.md for setup.
 
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 
-export const ORG_DOMAIN = process.env.SF_ORG_DOMAIN || 'idcapture.my.salesforce.com';
-export const MY_DOMAIN_NAME = process.env.SF_MY_DOMAIN || 'idcapture';
-export const SERVER_NAME = process.env.SF_MCP_SERVER || 'platform/sobject-reads';
-export const CLIENT_ID = process.env.SF_CLIENT_ID
-  || '3MVG9gYjOgxHsENKfY5XT4SEP2v.3QiKRNR3wEzrL7eDHGHX2kmPSf3LtJP7myB_cp.TQwC2ISbxMGseNasoa';
-
-export const STATE_DIR = join(homedir(), '.idcapture-salesforce-bridge');
+export const STATE_DIR = process.env.SF_STATE_DIR || join(homedir(), '.salesforce-mcp-bridge');
 export const TOKENS_FILE = join(STATE_DIR, 'tokens.json');
 export const SECRET_FILE = join(STATE_DIR, 'secret');
+export const CONFIG_FILE = join(STATE_DIR, 'config.json');
 
-export function getClientSecret() {
-  if (process.env.SF_CLIENT_SECRET) return process.env.SF_CLIENT_SECRET;
-  if (existsSync(SECRET_FILE)) return readFileSync(SECRET_FILE, 'utf8').trim();
-  throw new Error(
-    `Consumer Secret not found. Set SF_CLIENT_SECRET env var OR write it to ${SECRET_FILE} (chmod 600).`
-  );
+// Load optional JSON config (alternative to env vars for convenience).
+function loadJsonConfig() {
+  if (!existsSync(CONFIG_FILE)) return {};
+  try { return JSON.parse(readFileSync(CONFIG_FILE, 'utf8')); }
+  catch { return {}; }
+}
+const fileConfig = loadJsonConfig();
+
+function req(envName, fileName, description) {
+  const v = process.env[envName] ?? fileConfig[fileName];
+  if (!v) {
+    throw new Error(
+      `Missing ${description}. Set env var ${envName} or add "${fileName}" to ${CONFIG_FILE}.`
+    );
+  }
+  return String(v);
 }
 
-export const CALLBACK_PORT = Number(process.env.SF_CALLBACK_PORT || 8765);
-export const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}/oauth/callback`;
-export const SCOPES = 'mcp_api refresh_token';
-// Resource indicator (RFC 8707): audience-scope the token to api.salesforce.com
-// so the hosted MCP accepts it. Without this, /userinfo works but the MCP
-// endpoints return "Invalid token".
-export const RESOURCE = 'https://api.salesforce.com/';
+function opt(envName, fileName, fallback) {
+  return process.env[envName] ?? fileConfig[fileName] ?? fallback;
+}
 
-// OAuth endpoints — directly on the org's My Domain (bypasses the broken
-// discovery on api.salesforce.com).
+// --- Required ---
+export const ORG_DOMAIN = req('SF_ORG_DOMAIN', 'orgDomain',
+  'org My Domain (e.g., acme.my.salesforce.com)');
+export const CLIENT_ID = req('SF_CLIENT_ID', 'clientId',
+  'External Client App Consumer Key');
+
+// --- Optional with defaults ---
+export const SERVER_NAME = opt('SF_MCP_SERVER', 'server', 'platform/sobject-reads');
+export const CALLBACK_PORT = Number(opt('SF_CALLBACK_PORT', 'callbackPort', 8765));
+export const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}/oauth/callback`;
+export const SCOPES = opt('SF_SCOPES', 'scopes', 'mcp_api refresh_token');
+
+// Resource indicator (RFC 8707) — kept for future-proofing even though the
+// Salesforce token endpoint currently ignores it.
+export const RESOURCE = opt('SF_RESOURCE', 'resource', 'https://api.salesforce.com/');
+
+// --- Derived URLs ---
 export const AUTHORIZE_URL = `https://${ORG_DOMAIN}/services/oauth2/authorize`;
 export const TOKEN_URL = `https://${ORG_DOMAIN}/services/oauth2/token`;
-
-// MCP endpoint — use the non-My-Domain path for production orgs where
-// login.salesforce.com is enabled. The `/d/{mydomain}/` variant documented
-// in the Salesforce wiki returns "empty serverURI" for IDCapture (Salesforce
-// routing quirk); the plain `/{servername}` path works once tokens are JWT.
 export const MCP_URL = `https://api.salesforce.com/platform/mcp/v1/${SERVER_NAME}`;
+
+// --- Secret loader ---
+export function getClientSecret() {
+  if (process.env.SF_CLIENT_SECRET) return process.env.SF_CLIENT_SECRET;
+  if (fileConfig.clientSecret) return String(fileConfig.clientSecret);
+  if (existsSync(SECRET_FILE)) return readFileSync(SECRET_FILE, 'utf8').trim();
+  throw new Error(
+    `Consumer Secret not found. Set SF_CLIENT_SECRET, add "clientSecret" to ${CONFIG_FILE}, or write the secret to ${SECRET_FILE} (chmod 600).`
+  );
+}

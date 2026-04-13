@@ -7,7 +7,7 @@
 // metadata on api.salesforce.com (the authorization_servers URL doesn't serve
 // metadata at any standard path). mcp-remote and Claude Connectors both
 // choke on this. We side-step the whole discovery problem by doing the
-// OAuth flow ourselves against idcapture.my.salesforce.com, then forwarding
+// OAuth flow ourselves against the org's My Domain, then forwarding
 // MCP traffic to the hosted endpoint with a regular Bearer header.
 
 import { createInterface } from 'node:readline';
