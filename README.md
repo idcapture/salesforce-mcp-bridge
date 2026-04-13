@@ -1,11 +1,11 @@
 # salesforce-mcp-bridge
 
-[![Latest release](https://img.shields.io/github/v/release/idcapture/salesforce-mcp-bridge?label=Download%20.dxt&logo=github&color=2ea44f)](https://github.com/idcapture/salesforce-mcp-bridge/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/idcapture/salesforce-mcp-bridge?label=Download%20.mcpb&logo=github&color=2ea44f)](https://github.com/idcapture/salesforce-mcp-bridge/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Made for Claude Desktop](https://img.shields.io/badge/Claude%20Desktop-extension-D97706)](https://claude.ai/download)
 [![GitHub stars](https://img.shields.io/github/stars/idcapture/salesforce-mcp-bridge?style=social)](https://github.com/idcapture/salesforce-mcp-bridge)
 
-> **Talk to your Salesforce org from Claude.** A drop-in Claude Desktop extension (`.dxt`) that connects Claude to Salesforce's Hosted MCP servers in one click — and side-steps the broken OAuth discovery on `api.salesforce.com` that blocks `mcp-remote` and Claude Connectors as of mid-2026.
+> **Talk to your Salesforce org from Claude.** A drop-in Claude Desktop extension (`.mcpb`) that connects Claude to Salesforce's Hosted MCP servers in one click — and side-steps the broken OAuth discovery on `api.salesforce.com` that blocks `mcp-remote` and Claude Connectors as of mid-2026.
 
 > ⚠️ **Prerequisite — Node.js ≥ 20 must be installed on the host machine.** This is the runtime the extension's MCP server runs under. On Windows, install from [nodejs.org](https://nodejs.org/en/download) (download the **Windows Installer .msi** under "Get Node.js prebuilt"). On macOS, `brew install node`. On Linux, your package manager. *If you see "Cannot connect to extension server" after install, Node is missing or not in PATH — restart your machine after installing.* For org-wide deployment, IT can push Node via Intune/GPO with `winget install OpenJS.NodeJS.LTS`.
 
@@ -18,7 +18,7 @@ Salesforce ships **Hosted MCP Servers** — `sobject-reads`, `sobject-all`, etc.
 1. **Broken OAuth discovery** — `/.well-known/oauth-protected-resource` advertises an authorization server with no resolvable metadata. `mcp-remote` and Claude Connectors hang or error out.
 2. **JWT-only tokens** — the gateway rejects classic SID tokens (`"JWT Token is required"`) unless the External Client App explicitly opts in to JWT format.
 
-This bridge does the OAuth flow **directly against your org's My Domain** (which works fine), forwards MCP traffic to `api.salesforce.com` with a JWT Bearer token, and ships as a one-click `.dxt` extension for Claude Desktop. Once Salesforce fixes their discovery metadata, this becomes obsolete — until then, this is the path that works.
+This bridge does the OAuth flow **directly against your org's My Domain** (which works fine), forwards MCP traffic to `api.salesforce.com` with a JWT Bearer token, and ships as a one-click `.mcpb` extension for Claude Desktop. Once Salesforce fixes their discovery metadata, this becomes obsolete — until then, this is the path that works.
 
 ```
 Claude Desktop  ──stdio JSON-RPC──▶  bridge (this)  ──HTTPS+Bearer──▶  api.salesforce.com
@@ -26,7 +26,7 @@ Claude Desktop  ──stdio JSON-RPC──▶  bridge (this)  ──HTTPS+Bearer
 
 ## Install (Claude Desktop, recommended)
 
-[![Download latest .dxt](https://img.shields.io/github/v/release/idcapture/salesforce-mcp-bridge?label=Download%20latest%20.dxt&logo=github&style=for-the-badge&color=2ea44f)](https://github.com/idcapture/salesforce-mcp-bridge/releases/latest)
+[![Download latest .mcpb](https://img.shields.io/github/v/release/idcapture/salesforce-mcp-bridge?label=Download%20latest%20.mcpb&logo=github&style=for-the-badge&color=2ea44f)](https://github.com/idcapture/salesforce-mcp-bridge/releases/latest)
 
 **Requirements**
 
@@ -35,11 +35,11 @@ Claude Desktop  ──stdio JSON-RPC──▶  bridge (this)  ──HTTPS+Bearer
 
 **Steps**
 
-1. Download the `.dxt` file from the latest [release](https://github.com/idcapture/salesforce-mcp-bridge/releases/latest).
+1. Download the `.mcpb` file from the latest [release](https://github.com/idcapture/salesforce-mcp-bridge/releases/latest).
 2. Open Claude Desktop.
 3. Install the extension:
-   - **macOS**: double-click the `.dxt` file (Claude Desktop opens an install dialog).
-   - **Windows**: Settings → Extensions (under "Application bureau") → **Advanced settings** → **Install extension** → pick the `.dxt`. *(Double-click on the file does not work on Windows.)*
+   - **macOS**: double-click the `.mcpb` file (Claude Desktop opens an install dialog).
+   - **Windows**: Settings → Extensions (under "Application bureau") → **Advanced settings** → **Install extension** → pick the `.mcpb`. *(Double-click on the file does not work on Windows.)*
 4. Fill in:
    - **Salesforce My Domain** — e.g. `acme.my.salesforce.com`
    - **OAuth Consumer Key** — from your Salesforce External Client App
@@ -142,17 +142,17 @@ Lookup order: env var → `~/.salesforce-mcp-bridge/config.json` → default.
 
 For the verbose path: `~/.salesforce-mcp-bridge/tokens.json` (per-user, chmod 600), bridge logs are visible in Claude Desktop → Settings → Developer.
 
-## Build the .dxt yourself
+## Build the .mcpb yourself
 
 ```bash
-./dxt/build.sh
-# → dxt/dist/salesforce-mcp-bridge-X.Y.Z.dxt
+./mcpb/build.sh
+# → mcpb/dist/salesforce-mcp-bridge-X.Y.Z.mcpb
 ```
 
 ## Security model
 
 - The Consumer Key is a **public OAuth client identifier** — by design exposed in client packages, no risk in distributing it.
-- The Consumer Secret is **never embedded in the .dxt** — provided per-user (or omitted entirely with PKCE).
+- The Consumer Secret is **never embedded in the .mcpb** — provided per-user (or omitted entirely with PKCE).
 - Tokens (access + refresh) are stored locally in `~/.salesforce-mcp-bridge/tokens.json`, chmod 600, never sent anywhere except `api.salesforce.com`.
 - The bridge opens a localhost callback port **only during the one-off OAuth flow**; no port stays open while serving MCP traffic.
 - The default server (`sobject-reads`) is **read-only**. If you switch to `sobject-all`, restrict via Salesforce Profile/Permission Set.
@@ -162,6 +162,8 @@ For the verbose path: `~/.salesforce-mcp-bridge/tokens.json` (per-user, chmod 60
 - Single-user per `tokens.json`
 - stdio transport only (no SSE/HTTP)
 - MCP protocol pinned to `2024-11-05`
+
+> **Naming note** — `.mcpb` ("MCP Bundle") is the current name of what was previously called `.dxt` ("Desktop Extension"). Anthropic renamed the format and moved the spec under the [Model Context Protocol organization](https://github.com/modelcontextprotocol/mcpb). Both extensions are accepted by Claude Desktop today.
 
 ## Contributing
 

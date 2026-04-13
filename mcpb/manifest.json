@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "salesforce-mcp-bridge",
   "display_name": "Salesforce",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Query your Salesforce org from Claude (SOQL, SOSL, schema, recent records). Read-only. Works around the broken OAuth discovery on api.salesforce.com that blocks mcp-remote and Claude Connectors.",
   "long_description": "Stdio bridge to Salesforce Hosted MCP servers (sobject-reads, sobject-all). OAuth happens directly against your org's My Domain — no mcp-remote, no broken discovery metadata. Tokens are cached locally. Works with any Salesforce org — paste your org's My Domain and your External Client App Consumer Key in the fields below.",
   "author": {

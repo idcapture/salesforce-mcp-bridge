@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Build salesforce-mcp-bridge.dxt from the bridge source files.
-# Output: dxt/dist/salesforce-mcp-bridge.dxt (zip with .dxt extension)
+# Build salesforce-mcp-bridge.mcpb from the bridge source files.
+# .mcpb is the current MCP Bundle format (formerly known as .dxt).
+# Both extensions are accepted by Claude Desktop, but .mcpb is the new official name.
+# Output: mcpb/dist/salesforce-mcp-bridge-X.Y.Z.mcpb
 
 set -euo pipefail
 
@@ -23,16 +25,16 @@ cp "$here/manifest.json" "$staging/manifest.json"
 # Minimal package.json so Node finds it's an ESM project
 cat > "$staging/package.json" <<'EOF'
 {
-  "name": "salesforce-mcp-bridge-dxt",
-  "version": "0.1.0",
+  "name": "salesforce-mcp-bridge-mcpb",
+  "version": "0.1.2",
   "type": "module",
   "private": true
 }
 EOF
 
 # Bundle
-dxt_name="salesforce-mcp-bridge-$(node -e "console.log(require('$here/manifest.json').version)").dxt"
-out="$dist/$dxt_name"
+mcpb_name="salesforce-mcp-bridge-$(node -e "console.log(require('$here/manifest.json').version)").mcpb"
+out="$dist/$mcpb_name"
 
 (cd "$staging" && zip -r "$out" . -x '*.DS_Store' > /dev/null)
 

@@ -1,5 +1,5 @@
 node_modules/
 .env
 *.log
-dxt/dist/
-dxt/.staging/
+mcpb/dist/
+mcpb/.staging/
