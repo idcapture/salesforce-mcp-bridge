@@ -26,7 +26,7 @@ cp "$here/manifest.json" "$staging/manifest.json"
 cat > "$staging/package.json" <<'EOF'
 {
   "name": "salesforce-mcp-bridge-mcpb",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "private": true
 }

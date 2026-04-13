@@ -65,8 +65,10 @@ Setup → **External Client App Manager** → New External Client App.
 
 - **Callback URL**: `http://localhost:8765/oauth/callback`
 - **Selected Scopes**:
-  - `Access Salesforce-hosted MCP servers (mcp_api)`
+  - `Manage user data via APIs (api)`
+  - `Access the Salesforce API Platform (sfap_api)`
   - `Perform requests at any time (refresh_token, offline_access)`
+  - *(optional, only if using prompt templates)* `Access Einstein GPT services (einstein_gpt_api)`
 
 **Security**
 
@@ -125,7 +127,7 @@ For Cursor, Windsurf, Zed: point your MCP client at `node /absolute/path/to/serv
 | `SF_CLIENT_SECRET`   | `clientSecret`   | —                          | (PKCE-only if absent) |
 | `SF_MCP_SERVER`      | `server`         | `platform/sobject-reads`   |          |
 | `SF_CALLBACK_PORT`   | `callbackPort`   | `8765`                     |          |
-| `SF_SCOPES`          | `scopes`         | `mcp_api refresh_token`    |          |
+| `SF_SCOPES`          | `scopes`         | `api sfap_api refresh_token` |        |
 | `SF_STATE_DIR`       | —                | `~/.salesforce-mcp-bridge` |          |
 
 Lookup order: env var → `~/.salesforce-mcp-bridge/config.json` → default.
@@ -135,7 +137,7 @@ Lookup order: env var → `~/.salesforce-mcp-bridge/config.json` → default.
 | Symptom | Fix |
 |---|---|
 | `Not authenticated` on first MCP call | Re-trigger OAuth: in Claude Desktop, Disable then Enable the extension |
-| OAuth `OAUTH_APPROVAL_ERROR_GENERIC` | The ECA is missing `mcp_api` scope or the user isn't authorized in Policies |
+| OAuth `OAUTH_APPROVAL_ERROR_GENERIC` | The ECA is missing the `api` / `sfap_api` scopes or the user isn't authorized in Policies |
 | Auth OK but `Invalid token` on tool calls | Enable **Issue JWT-based access tokens for named users** in the ECA's Security section, then re-auth |
 | `"empty serverURI"` | The bridge picks the right URL automatically — make sure your `SF_MCP_SERVER` is in the `platform/<server-name>` form |
 | Port 8765 in use | Set `SF_CALLBACK_PORT` to a free port and add a matching Callback URL to the ECA |
@@ -173,6 +175,17 @@ PRs welcome. Especially interested in:
 - Removing the bridge entirely once `mcp-remote` works against `api.salesforce.com` natively
 
 If Salesforce fixes their `/.well-known/oauth-authorization-server` on `api.salesforce.com`, this whole project becomes a footnote — that's the goal.
+
+## Changelog
+
+### 0.1.3
+- **Fix**: OAuth scopes now match Salesforce's official doc for Hosted MCP (`api sfap_api refresh_token`). Previous versions requested `mcp_api`, which is not a real Salesforce scope — it happened to work because Salesforce silently ignores unknown scopes and grants whatever the ECA allows, but any strict client / fresh ECA would fail. If you upgrade and have `SF_SCOPES` set manually, update it accordingly.
+
+### 0.1.2
+- Migrate from `.dxt` to `.mcpb` extension format.
+
+### 0.1.1
+- Fully generic `.dxt` (no org-specific defaults).
 
 ## License
 

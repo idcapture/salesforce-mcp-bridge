@@ -42,7 +42,7 @@ export const CLIENT_ID = req('SF_CLIENT_ID', 'clientId',
 export const SERVER_NAME = opt('SF_MCP_SERVER', 'server', 'platform/sobject-reads');
 export const CALLBACK_PORT = Number(opt('SF_CALLBACK_PORT', 'callbackPort', 8765));
 export const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}/oauth/callback`;
-export const SCOPES = opt('SF_SCOPES', 'scopes', 'mcp_api refresh_token');
+export const SCOPES = opt('SF_SCOPES', 'scopes', 'api sfap_api refresh_token');
 
 // Resource indicator (RFC 8707) — kept for future-proofing even though the
 // Salesforce token endpoint currently ignores it.
