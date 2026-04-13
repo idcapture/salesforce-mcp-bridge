@@ -41,7 +41,7 @@
     { "name": "getObjectSchema", "description": "Retourne le schéma d'un objet ou l'index des objets queryables." }
   ],
   "compatibility": {
-    "client": ">=0.10.0",
+    "claude_desktop": ">=0.10.0",
     "platforms": ["darwin", "win32", "linux"],
     "runtimes": {
       "node": ">=20.0.0"
