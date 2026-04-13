@@ -7,6 +7,8 @@
 
 > **Talk to your Salesforce org from Claude.** A drop-in Claude Desktop extension (`.dxt`) that connects Claude to Salesforce's Hosted MCP servers in one click — and side-steps the broken OAuth discovery on `api.salesforce.com` that blocks `mcp-remote` and Claude Connectors as of mid-2026.
 
+> ⚠️ **Prerequisite — Node.js ≥ 20 must be installed on the host machine.** This is the runtime the extension's MCP server runs under. On Windows, install from [nodejs.org](https://nodejs.org/en/download) (download the **Windows Installer .msi** under "Get Node.js prebuilt"). On macOS, `brew install node`. On Linux, your package manager. *If you see "Cannot connect to extension server" after install, Node is missing or not in PATH — restart your machine after installing.* For org-wide deployment, IT can push Node via Intune/GPO with `winget install OpenJS.NodeJS.LTS`.
+
 ---
 
 ## Why this exists
@@ -26,16 +28,26 @@ Claude Desktop  ──stdio JSON-RPC──▶  bridge (this)  ──HTTPS+Bearer
 
 [![Download latest .dxt](https://img.shields.io/github/v/release/idcapture/salesforce-mcp-bridge?label=Download%20latest%20.dxt&logo=github&style=for-the-badge&color=2ea44f)](https://github.com/idcapture/salesforce-mcp-bridge/releases/latest)
 
-1. Download the `.dxt` file from the latest [release](https://github.com/idcapture/salesforce-mcp-bridge/releases/latest)
-2. Double-click it. Claude Desktop opens an install dialog.
-3. Fill in:
+**Requirements**
+
+- **Node.js ≥ 20** on the host machine — install from [nodejs.org](https://nodejs.org/en/download) (Windows: .msi installer, macOS: `brew install node`, Linux: your package manager). **Restart your machine after install** so Node is on the system PATH.
+- **Claude Desktop ≥ 0.10** — [download here](https://claude.ai/download).
+
+**Steps**
+
+1. Download the `.dxt` file from the latest [release](https://github.com/idcapture/salesforce-mcp-bridge/releases/latest).
+2. Open Claude Desktop.
+3. Install the extension:
+   - **macOS**: double-click the `.dxt` file (Claude Desktop opens an install dialog).
+   - **Windows**: Settings → Extensions (under "Application bureau") → **Advanced settings** → **Install extension** → pick the `.dxt`. *(Double-click on the file does not work on Windows.)*
+4. Fill in:
    - **Salesforce My Domain** — e.g. `acme.my.salesforce.com`
    - **OAuth Consumer Key** — from your Salesforce External Client App
    - **OAuth Consumer Secret** — leave **empty** (PKCE-only public client; works out of the box)
-4. Click **Install**.
-5. On your first Salesforce question to Claude, your browser opens once for the OAuth login. Done.
+5. Click **Install**.
+6. On your first Salesforce question to Claude, your browser opens once for the OAuth login. Done.
 
-> **Requirements:** Claude Desktop ≥ 0.10, Node.js ≥ 20 on the host machine.
+> If Claude shows *"Cannot connect to extension server"* after install: Node.js is missing or not in PATH on the host. Reinstall Node.js and restart the machine.
 
 ## Salesforce side — one-time setup
 
