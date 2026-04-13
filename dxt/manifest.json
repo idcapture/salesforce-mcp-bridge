@@ -2,12 +2,12 @@
   "manifest_version": "0.3",
   "name": "salesforce-mcp-bridge",
   "display_name": "Salesforce",
-  "version": "0.1.0",
-  "description": "Interrogez votre org Salesforce depuis Claude (SOQL, SOSL, schéma, records récents). Lecture seule.",
-  "long_description": "Bridge to Salesforce Hosted MCP servers (sobject-reads). Workaround for the broken OAuth discovery metadata on api.salesforce.com — OAuth happens directly against your org's My Domain, tokens are cached locally, MCP traffic is forwarded with a JWT Bearer token.",
+  "version": "0.1.1",
+  "description": "Query your Salesforce org from Claude (SOQL, SOSL, schema, recent records). Read-only. Works around the broken OAuth discovery on api.salesforce.com that blocks mcp-remote and Claude Connectors.",
+  "long_description": "Stdio bridge to Salesforce Hosted MCP servers (sobject-reads, sobject-all). OAuth happens directly against your org's My Domain — no mcp-remote, no broken discovery metadata. Tokens are cached locally. Works with any Salesforce org — paste your org's My Domain and your External Client App Consumer Key in the fields below.",
   "author": {
     "name": "ID Capture",
-    "url": "https://github.com/idcapture/salesforce-mcp-bridge"
+    "url": "https://github.com/idcapture"
   },
   "repository": {
     "type": "git",
@@ -17,7 +17,7 @@
   "documentation": "https://github.com/idcapture/salesforce-mcp-bridge#readme",
   "support": "https://github.com/idcapture/salesforce-mcp-bridge/issues",
   "license": "MIT",
-  "keywords": ["salesforce", "mcp", "crm", "soql", "claude"],
+  "keywords": ["salesforce", "mcp", "crm", "soql", "sosl", "claude", "hosted-mcp", "oauth"],
   "server": {
     "type": "node",
     "entry_point": "server/server.mjs",
@@ -33,12 +33,12 @@
     }
   },
   "tools": [
-    { "name": "getUserInfo", "description": "Retourne l'identité et les préférences de l'utilisateur courant." },
-    { "name": "soqlQuery", "description": "Exécute une requête SOQL pour lire des records Salesforce." },
-    { "name": "find", "description": "Recherche texte cross-objets (SOSL)." },
-    { "name": "listRecentSobjectRecords", "description": "Les records récemment consultés pour un objet donné." },
-    { "name": "getRelatedRecords", "description": "Navigue les relations depuis un record parent (ex. Contacts d'un Account)." },
-    { "name": "getObjectSchema", "description": "Retourne le schéma d'un objet ou l'index des objets queryables." }
+    { "name": "getUserInfo",              "description": "Current user identity, role, and admin preferences." },
+    { "name": "soqlQuery",                "description": "Execute a SOQL query against the org." },
+    { "name": "find",                     "description": "Text search across multiple objects (SOSL)." },
+    { "name": "listRecentSobjectRecords", "description": "Records recently viewed or modified for a given object." },
+    { "name": "getRelatedRecords",        "description": "Traverse relationships from a parent record (e.g. Contacts for an Account)." },
+    { "name": "getObjectSchema",          "description": "LLM-optimized schema for an object, or an index of all objects." }
   ],
   "compatibility": {
     "claude_desktop": ">=0.10.0",
@@ -51,28 +51,26 @@
     "org_domain": {
       "type": "string",
       "title": "Salesforce My Domain",
-      "description": "Votre domaine Salesforce, ex: votreorg.my.salesforce.com (sans https://)",
-      "required": true,
-      "default": "idcapture.my.salesforce.com"
+      "description": "Your Salesforce org's My Domain, e.g. acme.my.salesforce.com (no https://, no trailing slash).",
+      "required": true
     },
     "client_id": {
       "type": "string",
       "title": "OAuth Consumer Key",
-      "description": "Consumer Key de l'External Client App (fourni par l'IT)",
-      "required": true,
-      "default": "3MVG9gYjOgxHsENKfY5XT4SEP2v.3QiKRNR3wEzrL7eDHGHX2kmPSf3LtJP7myB_cp.TQwC2ISbxMGseNasoa"
+      "description": "Consumer Key from your Salesforce External Client App. Salesforce → Setup → External Client App Manager → your app → Settings → Consumer Key and Secret.",
+      "required": true
     },
     "client_secret": {
       "type": "string",
-      "title": "OAuth Consumer Secret",
-      "description": "Consumer Secret de l'External Client App (fourni par l'IT)",
+      "title": "OAuth Consumer Secret (leave empty for public client + PKCE)",
+      "description": "Only needed if your External Client App has 'Require secret for Web Server Flow' enabled. Salesforce's recommended MCP setup is public client + PKCE, so you can usually leave this empty.",
       "sensitive": true,
-      "required": true
+      "required": false
     },
     "server_name": {
       "type": "string",
       "title": "MCP Server",
-      "description": "Nom du serveur MCP hébergé par Salesforce (par défaut: platform/sobject-reads, lecture seule)",
+      "description": "Name of the Hosted MCP server to connect to. Default: platform/sobject-reads (read-only, 6 tools). For full CRUD, use platform/sobject-all.",
       "required": false,
       "default": "platform/sobject-reads"
     }

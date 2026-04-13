@@ -120,16 +120,19 @@ export async function interactiveLogin() {
     setTimeout(() => { server.close(); reject(new Error('OAuth timeout (5 min)')); }, 5 * 60 * 1000);
   });
 
-  // Exchange code for tokens.
+  // Exchange code for tokens. client_secret is omitted if not configured —
+  // Salesforce accepts public client + PKCE when the ECA has "Require secret
+  // for Web Server Flow" disabled.
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
     code,
     client_id: CLIENT_ID,
-    client_secret: getClientSecret(),
     redirect_uri: CALLBACK_URL,
     code_verifier: verifier,
     resource: RESOURCE,
   });
+  const secret = getClientSecret();
+  if (secret) body.set('client_secret', secret);
   const resp = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -158,9 +161,10 @@ export async function refresh(tokens) {
     grant_type: 'refresh_token',
     refresh_token: tokens.refresh_token,
     client_id: CLIENT_ID,
-    client_secret: getClientSecret(),
     resource: RESOURCE,
   });
+  const secret = getClientSecret();
+  if (secret) body.set('client_secret', secret);
   const resp = await fetch(TOKEN_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

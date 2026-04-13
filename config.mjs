@@ -54,11 +54,17 @@ export const TOKEN_URL = `https://${ORG_DOMAIN}/services/oauth2/token`;
 export const MCP_URL = `https://api.salesforce.com/platform/mcp/v1/${SERVER_NAME}`;
 
 // --- Secret loader ---
+// Returns the Consumer Secret if configured, or null if not. When null, the
+// OAuth flow runs as a public client (PKCE-only) — this is Salesforce's
+// recommended setup for MCP clients and requires "Require secret for Web
+// Server Flow" AND "Require secret for Refresh Token Flow" to be DISABLED
+// on the External Client App.
 export function getClientSecret() {
   if (process.env.SF_CLIENT_SECRET) return process.env.SF_CLIENT_SECRET;
   if (fileConfig.clientSecret) return String(fileConfig.clientSecret);
-  if (existsSync(SECRET_FILE)) return readFileSync(SECRET_FILE, 'utf8').trim();
-  throw new Error(
-    `Consumer Secret not found. Set SF_CLIENT_SECRET, add "clientSecret" to ${CONFIG_FILE}, or write the secret to ${SECRET_FILE} (chmod 600).`
-  );
+  if (existsSync(SECRET_FILE)) {
+    const s = readFileSync(SECRET_FILE, 'utf8').trim();
+    return s || null;
+  }
+  return null;
 }
