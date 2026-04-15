@@ -18,8 +18,16 @@ function loadJsonConfig() {
 }
 const fileConfig = loadJsonConfig();
 
+// Detect Claude Desktop's unexpanded ${user_config.xxx} placeholders — happens
+// on Windows when the user leaves an optional field blank. Treat as unset.
+function clean(v) {
+  if (typeof v !== 'string') return v;
+  if (/^\$\{[^}]+\}$/.test(v.trim())) return undefined;
+  return v;
+}
+
 function req(envName, fileName, description) {
-  const v = process.env[envName] ?? fileConfig[fileName];
+  const v = clean(process.env[envName]) ?? fileConfig[fileName];
   if (!v) {
     throw new Error(
       `Missing ${description}. Set env var ${envName} or add "${fileName}" to ${CONFIG_FILE}.`
@@ -29,7 +37,7 @@ function req(envName, fileName, description) {
 }
 
 function opt(envName, fileName, fallback) {
-  return process.env[envName] ?? fileConfig[fileName] ?? fallback;
+  return clean(process.env[envName]) ?? fileConfig[fileName] ?? fallback;
 }
 
 // --- Required ---
@@ -42,7 +50,12 @@ export const CLIENT_ID = req('SF_CLIENT_ID', 'clientId',
 export const SERVER_NAME = opt('SF_MCP_SERVER', 'server', 'platform/sobject-reads');
 export const CALLBACK_PORT = Number(opt('SF_CALLBACK_PORT', 'callbackPort', 8765));
 export const CALLBACK_URL = `http://localhost:${CALLBACK_PORT}/oauth/callback`;
-export const SCOPES = opt('SF_SCOPES', 'scopes', 'api sfap_api refresh_token');
+// `mcp_api` is the GA scope for Salesforce's Hosted MCP endpoint (post-Feb
+// 2026). The earlier Beta scopes (api / sfap_api / einstein_gpt_api) are
+// rejected by the GA service with "OAuth invalid scope". The ECA must have
+// "Access Salesforce hosted MCP servers" selected for this scope to be
+// grantable. See: github.com/forcedotcom/mcp-hosted/wiki.
+export const SCOPES = opt('SF_SCOPES', 'scopes', 'mcp_api refresh_token');
 
 // Resource indicator (RFC 8707) — kept for future-proofing even though the
 // Salesforce token endpoint currently ignores it.
@@ -60,7 +73,8 @@ export const MCP_URL = `https://api.salesforce.com/platform/mcp/v1/${SERVER_NAME
 // Server Flow" AND "Require secret for Refresh Token Flow" to be DISABLED
 // on the External Client App.
 export function getClientSecret() {
-  if (process.env.SF_CLIENT_SECRET) return process.env.SF_CLIENT_SECRET;
+  const envSecret = clean(process.env.SF_CLIENT_SECRET);
+  if (envSecret) return envSecret;
   if (fileConfig.clientSecret) return String(fileConfig.clientSecret);
   if (existsSync(SECRET_FILE)) {
     const s = readFileSync(SECRET_FILE, 'utf8').trim();

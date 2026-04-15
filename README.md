@@ -7,7 +7,7 @@
 
 > **Talk to your Salesforce org from Claude.** A drop-in Claude Desktop extension (`.mcpb`) that connects Claude to Salesforce's Hosted MCP servers in one click — and side-steps the broken OAuth discovery on `api.salesforce.com` that blocks `mcp-remote` and Claude Connectors as of mid-2026.
 
-> ⚠️ **Prerequisite — Node.js ≥ 20 must be installed on the host machine.** This is the runtime the extension's MCP server runs under. On Windows, install from [nodejs.org](https://nodejs.org/en/download) (download the **Windows Installer .msi** under "Get Node.js prebuilt"). On macOS, `brew install node`. On Linux, your package manager. *If you see "Cannot connect to extension server" after install, Node is missing or not in PATH — restart your machine after installing.* For org-wide deployment, IT can push Node via Intune/GPO with `winget install OpenJS.NodeJS.LTS`.
+> **No Node.js install required.** Claude Desktop (≥ 0.13) ships a bundled Node runtime that MCP extensions use automatically when the system has no Node or an outdated one. You can verify it under *Settings → Extensions → Extension settings → Detected tools → Node.js (bundled: …)*.
 
 ---
 
@@ -30,8 +30,7 @@ Claude Desktop  ──stdio JSON-RPC──▶  bridge (this)  ──HTTPS+Bearer
 
 **Requirements**
 
-- **Node.js ≥ 20** on the host machine — install from [nodejs.org](https://nodejs.org/en/download) (Windows: .msi installer, macOS: `brew install node`, Linux: your package manager). **Restart your machine after install** so Node is on the system PATH.
-- **Claude Desktop ≥ 0.10** — [download here](https://claude.ai/download).
+- **Claude Desktop ≥ 0.13** — [download here](https://claude.ai/download). A bundled Node.js runtime is included; no separate Node install is needed on the host.
 
 **Steps**
 
@@ -47,7 +46,7 @@ Claude Desktop  ──stdio JSON-RPC──▶  bridge (this)  ──HTTPS+Bearer
 5. Click **Install**.
 6. On your first Salesforce question to Claude, your browser opens once for the OAuth login. Done.
 
-> If Claude shows *"Cannot connect to extension server"* after install: Node.js is missing or not in PATH on the host. Reinstall Node.js and restart the machine.
+> If the Salesforce authorize page shows **`invalid_client_id`**: your default browser is signed into a different Salesforce org and its cookies are leaking into the authorize request. Open the URL from the bridge's landing page in a **Private / InPrivate / Incognito** window. The landing page (served at `http://localhost:8765/`) includes a button and explicit instructions.
 
 ## Salesforce side — one-time setup
 
@@ -65,10 +64,8 @@ Setup → **External Client App Manager** → New External Client App.
 
 - **Callback URL**: `http://localhost:8765/oauth/callback`
 - **Selected Scopes**:
-  - `Manage user data via APIs (api)`
-  - `Access the Salesforce API Platform (sfap_api)`
+  - `Access Salesforce hosted MCP servers (mcp_api)` *(required — the GA scope for Hosted MCP as of Feb 2026)*
   - `Perform requests at any time (refresh_token, offline_access)`
-  - *(optional, only if using prompt templates)* `Access Einstein GPT services (einstein_gpt_api)`
 
 **Security**
 
@@ -127,7 +124,7 @@ For Cursor, Windsurf, Zed: point your MCP client at `node /absolute/path/to/serv
 | `SF_CLIENT_SECRET`   | `clientSecret`   | —                          | (PKCE-only if absent) |
 | `SF_MCP_SERVER`      | `server`         | `platform/sobject-reads`   |          |
 | `SF_CALLBACK_PORT`   | `callbackPort`   | `8765`                     |          |
-| `SF_SCOPES`          | `scopes`         | `api sfap_api refresh_token` |        |
+| `SF_SCOPES`          | `scopes`         | `mcp_api refresh_token`    |          |
 | `SF_STATE_DIR`       | —                | `~/.salesforce-mcp-bridge` |          |
 
 Lookup order: env var → `~/.salesforce-mcp-bridge/config.json` → default.
@@ -137,7 +134,8 @@ Lookup order: env var → `~/.salesforce-mcp-bridge/config.json` → default.
 | Symptom | Fix |
 |---|---|
 | `Not authenticated` on first MCP call | Re-trigger OAuth: in Claude Desktop, Disable then Enable the extension |
-| OAuth `OAUTH_APPROVAL_ERROR_GENERIC` | The ECA is missing the `api` / `sfap_api` scopes or the user isn't authorized in Policies |
+| OAuth `invalid scope` or `OAUTH_APPROVAL_ERROR_GENERIC` | The ECA is missing the `mcp_api` scope, or the user isn't authorized in Policies. Add `Access Salesforce hosted MCP servers` to the ECA's Selected Scopes. |
+| OAuth `invalid_client_id` in the browser (not in bridge logs) | Your browser session is signed into a different Salesforce org. Open the authorize URL in a **Private / InPrivate / Incognito** window. The bridge's landing page has a one-click button and instructions. |
 | Auth OK but `Invalid token` on tool calls | Enable **Issue JWT-based access tokens for named users** in the ECA's Security section, then re-auth |
 | `"empty serverURI"` | The bridge picks the right URL automatically — make sure your `SF_MCP_SERVER` is in the `platform/<server-name>` form |
 | Port 8765 in use | Set `SF_CALLBACK_PORT` to a free port and add a matching Callback URL to the ECA |
@@ -177,6 +175,14 @@ PRs welcome. Especially interested in:
 If Salesforce fixes their `/.well-known/oauth-authorization-server` on `api.salesforce.com`, this whole project becomes a footnote — that's the goal.
 
 ## Changelog
+
+### 0.1.4
+- **Windows fix**: Claude Desktop leaves `${user_config.xxx}` placeholders unexpanded when optional fields are left blank (e.g. Consumer Secret). The bridge now detects and ignores these literal placeholders so `clean(undefined)` no longer trips the "Missing client id" error on first launch.
+- **Async OAuth**: the bridge responds to the client's `initialize` immediately with a synthesized handshake, then runs the OAuth browser flow in the background and signals `notifications/tools/list_changed` once tokens arrive. Previously Claude Desktop would time-kill the process during the 5-minute consent window.
+- **Landing page**: OAuth now opens `http://localhost:8765/` first (with a visible warning about the `invalid_client_id` cookie trap) instead of jumping straight to Salesforce. Server-side preflight probe detects a genuinely-bad client_id before opening the browser.
+- **Scopes default → `mcp_api refresh_token`**: matches the GA Hosted MCP scope (post-Feb 2026). The Beta scopes (`api`, `sfap_api`) are now rejected with *OAuth invalid scope* by the GA endpoint. If you set `SF_SCOPES` manually, update it. Your ECA must have *Access Salesforce hosted MCP servers* selected.
+- **HTTP error surfacing**: non-2xx responses from the remote MCP endpoint are now propagated as proper JSON-RPC errors to the client instead of being swallowed.
+- **No Node.js install required**: Claude Desktop ≥ 0.13 ships a bundled Node runtime — the prior README warning about installing Node on Windows is obsolete.
 
 ### 0.1.3
 - **Fix**: OAuth scopes now match Salesforce's official doc for Hosted MCP (`api sfap_api refresh_token`). Previous versions requested `mcp_api`, which is not a real Salesforce scope — it happened to work because Salesforce silently ignores unknown scopes and grants whatever the ECA allows, but any strict client / fresh ECA would fail. If you upgrade and have `SF_SCOPES` set manually, update it accordingly.
